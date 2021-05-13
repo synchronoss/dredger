@@ -1,0 +1,360 @@
+# Copyright (C) 2021 Synchronoss Technologies
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# 
+###############################################################################
+# Templates                                                                   #
+###############################################################################
+#
+# These are in-built templates defined here for re-usability.
+#
+# Dredger supplies leaf data in the following variables:
+#
+# Value:    The value at the current leaf in the structure.
+# Key:      The last key that we iterated into.
+# Trail:    A string listing the keys down to this value, dot delimited.
+#           e.g. "foo.bar.baz"
+# Sub:      Substitute value that would have been inserted without this policy.
+# SubValue: The substitue value before joining with the current logic
+# Doc:      The top level structure
+#
+# So given the following structure:
+#
+# {
+#   "fuzz": {
+#     "foo": ["bar", "baz"]
+#   }
+# }
+#
+# The policy path: "fuzz.foo", would be presented the values:
+#
+# Value:    ['bar', 'baz']
+# Key:      'foo'
+# Trail:    'fuzz.foo'
+# Sub:      'foo = ["bar", "baz"]'
+# SubValue: ['"bar"', '"baz"']
+# Doc:      "fuzz": { "foo":["bar", "baz"] }
+#
+
+templates:
+
+  # ignoreKey
+  #
+  # Just ingore the key
+  #
+  ignoreKey: &ignoreKey ""
+
+  # singularizeArray
+  #
+  # By default dredger will map format any arrays that it
+  # encounters. This template strips the 's' from the end of
+  # the key and repeats the key for each member of the array
+  # 
+  singularizeArray: &singularizeArray |
+    {{ $singleKey := regexReplaceAll "s$" $.Key "" }}
+    {{ range $i, $v := $.SubValue }}
+    {{ $singleKey }}{{ $v }}
+    {{ end }}
+
+  # unwindArray
+  #
+  # By default dredger will map format any arrays that it
+  # encounters. This template repeats the last key for each
+  #  member of the array
+  # 
+  unwindArray: &unwindArray |
+    {{ range $i, $v := $.SubValue }}
+    {{ $.Key }}{{ $v }}
+    {{ end }}
+
+  # scopedVariable
+  #
+  # replace the value with a variable scoped to the k8s
+  # resource
+  #
+  scopedVariable: &scopedVariable |
+    {{ $name := $.Doc.metadata.name | stripTfVars }}
+    {{ $.Key }} = var.{{ $name }}-{{ $.Key }}
+
+  # setMap
+  #
+  # Set the subtree to map format
+  setMap: &setMap |
+    {{ toTfMap $.Value $.Key }}
+
+  # scopedVariableUnit
+  #
+  # Creates a scoped Variable unit defining the input for a
+  # variable emplacement.
+  scopedVariableUnit: &scopedVariableUnit |
+    {{- $name := $.Doc.metadata.name | stripTfVars }}
+    variable "{{ $name }}-{{ $.Key }}" {
+      {{- if kindIs "int" $.Value }}
+      type    = number
+      {{- else if kindIs "string" $.Value }}
+      type    = string
+      {{- else if kindIs "bool" $.Value }}
+      type    = bool
+      {{- end }}
+      default = {{ $.Value }}
+    }
+
+  setOctal: &setOctal |
+    {{ $.Key }} = "{{ toOctal $.Value }}" # Set as octal
+
+###############################################################################
+# Policies                                                                    #
+###############################################################################
+#
+# This is the main structure that Dredger reads and enacts.
+#
+# Each policy consists of a path in the document where the
+# injection takes place and a template to render the new entry.
+#
+# Optionally a unit_template can be specified to render an
+# entirely new resource outside of the parsing structure. This
+# is useful for defining variables or outputs based on the data
+# found in the document.
+#
+
+policies:
+
+  # resourceKubernetes
+  #
+  # The top level policy converts the document into a resource
+  # 
+  # NOTE: For some stupid reason DaemonSets are named wrong
+- path: ""
+  template: |
+    {{- $name := stripTfVars $.Doc.metadata.name }}
+    {{- if eq $.Doc.kind "DaemonSet" }}
+    resource "kubernetes_daemonset" "{{ $name }}" {
+    {{- else }}
+    {{- $kind := snakecase $.Doc.kind }}
+    resource "kubernetes_{{ $kind }}" "{{ $name }}" {
+    {{- end }}
+      {{- range $k, $v := $.SubValue }}
+      {{- $v | nindent 2 }}
+      {{- end }}
+    }
+
+  # labelsAreMap
+  #
+  # labels are always maps
+- path: "metadata.labels"
+  template: *setMap
+
+- path: "spec.**.metadata.labels"
+  template: *setMap
+
+- path: "spec.**.matchLabels"
+  template: *setMap
+
+- path: "spec.volumeClaimTemplates.*.spec.resources.requests"
+  template: *setMap
+
+  # annotations are maps
+- path: "metadata.annotations"
+  template: *setMap
+
+- path: "spec.**.metadata.annotations"
+  template: *setMap
+
+  # PersistentVolumeClaims requests it's size with a map
+- path: "spec.resources.requests"
+  template: *setMap
+
+  # Service selectors are maps, but not deployable selectors
+- path: "spec.selector"
+  template: |
+    {{- if eq $.Doc.kind "Service" }}
+    {{- toTfMap $.Value $.Key }}
+    {{- else }}
+    {{- $.Sub }}
+    {{- end }}
+
+  # replicasVariable
+  #
+  # Set the replicas as a variable in all instances.
+  #
+  # Also creates a unit for the varible decleration with the
+  # default set to the document value
+  #
+- path: "spec.replicas"
+  template: *scopedVariable
+  unit_template:
+  - *scopedVariableUnit
+
+  # singularize serviceAccount secrets
+- path: "secrets"
+  template: *singularizeArray
+
+  # unwind deployable container env_from
+- path: "spec.template.spec.containers.*.envFrom"
+  template: *unwindArray
+
+  # unwind whatever this is
+- path: "spec.**.preferredDuringSchedulingIgnoredDuringExecution"
+  template: *unwindArray
+- path: "spec.**.requiredDuringSchedulingIgnoredDuringExecution"
+  template: *unwindArray
+
+
+  # singularize deployable containers
+- path: "spec.**.containers"
+  template: *singularizeArray
+
+  # singularize deployable containers volumeMounts
+- path: "spec.**.containers.*.volumeMounts"
+  template: *singularizeArray
+
+  # singularize deployable container ports
+- path: "spec.**.containers.*.ports"
+  template: *singularizeArray
+
+  # singularize service ports
+- path: "spec.ports"
+  template: *singularizeArray
+
+  # unwind deployable container env entries
+- path: "spec.**.containers.*.env"
+  template: *unwindArray
+
+  # unwind deployable volumes items
+- path: "spec.**.volumes.*.*.items"
+  template: *unwindArray
+
+  # singularize deployable volumeClaimTemplates
+- path: "spec.volumeClaimTemplates"
+  template: *singularizeArray
+
+  # singularize deployable volumes
+- path: "spec.template.spec.volumes"
+  template: *singularizeArray
+
+
+
+  # singularize deployable volumeClaimTemplates
+- path: "rules"
+  template: *singularizeArray
+
+  # singularize *_role_binding subjects
+- path: "subjects"
+  template: *singularizeArray
+
+
+  # unwind networkpolicy ingress and egress
+- path: "spec.ingress"
+  template: *unwindArray
+- path: "spec.egress"
+  template: *unwindArray
+
+  # unwind networpolicy *gress ports
+- path: "spec.egress.*.ports"
+  template: *unwindArray
+- path: "spec.ingress.*.ports"
+  template: *unwindArray
+
+  # unwind networpolicy *gress "to"
+- path: "spec.egress.*.to"
+  template: *unwindArray
+- path: "spec.ingress.*.to"
+  template: *unwindArray
+
+  # Terraform doens't need kind as a key
+- path: "kind"
+  template: *ignoreKey
+
+  # Terraform doens't need to know the apiVersion
+- path: "apiVersion"
+  template: *ignoreKey
+
+  # Terraform kubernetes provider doesn't recognise sysctls
+- path: "spec.template.spec.securityContext.sysctls"
+  template: *ignoreKey
+
+  # Set the defaultMode of any volumes mounts as octal
+  # which terraform understands as a 0 prefixed string
+- path: "spec.template.spec.volumes.*.*.defaultMode"
+  template: *setOctal
+
+  # Deployable resources are set as a variable in the
+  # format $name-resources. The default for this variable
+  # will be the 
+- path: "spec.template.spec.containers.*.resources"
+  template: |
+    {{- $name := $.Doc.metadata.name | stripTfVars }}
+    resources {
+      limits   = var.{{ $name }}-resources.limits
+      requests = var.{{ $name }}-resources.requests
+    }
+  unit_template:
+  - |
+    {{- $name := $.Doc.metadata.name | stripTfVars }}
+    variable "{{ $name }}-resources" {
+      type = object({ requests = map(string), limits = map(string) })
+      {{ toTfMap $.Value "default" | nindent 2 }}
+    }
+
+
+  # With Secret.data we defined a single variable then add each
+  # key as an object property within that variable
+  # 
+  # But with ConfigMap.data we just call toTfMap
+- path: "data"
+  template: |
+    {{- if eq $.Doc.kind "Secret" }}
+    {{- $name := stripTfVars $.Doc.metadata.name }}
+    data = {
+      {{- range $k, $v := $.Value }}
+      {{ $k | quote }} = var.{{ $name }}-secrets.{{ $k }}
+      {{- end }}
+    }
+    {{- else }}
+      {{- toTfMap $.Value "data" }}
+    {{- end }}
+  unit_template:
+  - |
+    {{- if eq $.Doc.kind "Secret" }}
+    {{- $name := stripTfVars $.Doc.metadata.name }}
+    variable "{{ $name }}-secrets" {
+      sensitive = true
+      type = object({
+      {{- range $k, $v := $.Value }}
+        {{ $k }} = string
+      {{- end }}
+      })
+    }
+    {{- end }}
+
+###############################################################################
+# Static units                                                                #
+###############################################################################
+#
+# Static units are a way of adding "global" units. They are added as text once
+# per execution of dredger.
+#
+# These are useful if you have a unit that always needs to be added.
+#
+# Static units are plain strings not templates
+#
+
+static_units:
+- |
+  variable "name" {
+    type = string
+  }
+- |
+  variable "namespace" {
+    type = string
+  }
