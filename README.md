@@ -26,13 +26,13 @@ terraform {
 provider "kubernetes" {} # Configure the kubernetes provider
 
 module "redis" {
-	source = "/tmp/dredger-redis"
-	name = "myredis"
-	namespace = "myredis"
-	redis-cluster-replicas = 3
-	redis-cluster-secrets = {
-		redis-password = "JustAnExamplePassword"
-	}
+  source = "/tmp/dredger-redis"
+  name = "myredis"
+  namespace = "myredis"
+  redis-cluster-replicas = 3
+  redis-cluster-secrets = {
+    redis-password = "JustAnExamplePassword"
+  }
 }
 EOF
 # Now we just init and apply!
