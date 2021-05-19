@@ -6,7 +6,7 @@ Dredger is made of dark magic and cannot fully convert a helm chart. It is desig
 
 ## quick start
 ```
-# Run dredger against the bitnami helm chart and write module to /tmp/dredger-quick-start
+# Run dredger against the bitnami helm chart and write module to /tmp/dredger-redis
 dredger --outputdir /tmp/dredger-redis helm bitnami/redis-cluster --set networkPolicy.enabled=true
 
 # Now create the terraform to consume this module
@@ -74,5 +74,5 @@ Then edit the output file makeing any alterations you require. Details on how th
 
 When you want to execute dredger with this config use the flag `--config` to specify the path to your custom file.
 ```
-dredger --config /tmp/custom_dredger_config.yaml helm bar/foo
+dredger --config /tmp/custom\_dredger\_config.yaml helm bar/foo
 ```
