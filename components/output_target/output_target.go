@@ -26,6 +26,7 @@ import (
 type ParsedLeaf = parsed_leaf.ParsedLeaf
 
 type OutputTarget interface {
+	Init() error
 	WriteLeaf(ParsedLeaf) error
 }
 

@@ -24,6 +24,11 @@ import "fmt"
 
 type stdoutOutputTarget struct{}
 
+func (st stdoutOutputTarget) Init() error {
+	// No init is required
+	return nil
+}
+
 func (st stdoutOutputTarget) WriteLeaf(p ParsedLeaf) error {
 	for _, unit := range p.GetAllUnits() {
 		fmt.Println(unit)

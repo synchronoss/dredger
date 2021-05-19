@@ -17,8 +17,9 @@ package output_target
 
 import (
 	"errors"
-	"github.com/synchronoss/dredger/components/debug"
 	"io/ioutil"
+	"fmt"
+	"os"
 )
 
 //
@@ -39,8 +40,12 @@ func (dt directoryOutputTarget) writeWorldReadableFile(fileName string, data str
 
 func (dt directoryOutputTarget) writeUnitFile(unitPath string, data string) error {
 	fileName := dt.determinFileName(unitPath)
-	debug.Debug("writing to ", fileName)
+	fmt.Println("writing unit", fileName)
 	return dt.writeWorldReadableFile(fileName, data)
+}
+
+func (dt directoryOutputTarget) Init() error {
+	return os.MkdirAll(dt.directory, os.ModePerm)
 }
 
 func (do directoryOutputTarget) WriteLeaf(p ParsedLeaf) error {
