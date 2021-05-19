@@ -74,5 +74,5 @@ Then edit the output file makeing any alterations you require. Details on how th
 
 When you want to execute dredger with this config use the flag `--config` to specify the path to your custom file.
 ```
-dredger --config /tmp/custom\_dredger\_config.yaml helm bar/foo
+dredger --config /tmp/custom_dredger_config.yaml helm bar/foo
 ```
