@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+version=$1
+
+mkdir -p build
+
+build_target() {
+	os=$1
+	arch=$2
+	suffix=${3:-""}
+	dir=dredger-$version-$os-$arch
+	echo building $dir
+	mkdir -p $dir
+	GOOS=$os GOARCH=$arch go build -o $dir/dredger$suffix main.go
+	cp LICENSE $dir/LICENSE
+	tar c $dir | gzip > build/$dir.tgz
+	rm -rf $dir
+}
+
+build_target linux amd64
+build_target linux arm
+build_target windows amd64 ".exe"
+build_target darwin amd64
+build_target darwin arm64
