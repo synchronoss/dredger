@@ -4,6 +4,42 @@ Dredger is a utility to help convert helm charts to Terraform modules using kube
 
 Dredger is made of dark magic and cannot fully convert a helm chart. It is designed to perform the bulk of the work but will still require some knowledge of Terraform HCL.
 
+## quick start
+```
+# Run dredger against the bitnami helm chart and write module to /tmp/dredger-quick-start
+dredger --outputdir /tmp/dredger-redis helm bitnami/redis-cluster --set networkPolicy.enabled=true
+
+# Now create the terraform to consume this module
+
+mkdir /tmp/dredger-main
+cd /tmp/dredger-main
+
+cat > main.tf <<EOF
+terraform {
+  backend "kubernetes" {
+    namespace        = "kube-system"
+    secret_suffix    = "dredger-quick-start-state"
+    load_config_file = true
+  }
+}
+
+provider "kubernetes" {} # Configure the kubernetes provider
+
+module "redis" {
+	source = "/tmp/dredger-redis"
+	name = "myredis"
+	namespace = "myredis"
+	redis-cluster-replicas = 3
+	redis-cluster-secrets = {
+		redis-password = "JustAnExamplePassword"
+	}
+}
+EOF
+# Now we just init and apply!
+terraform init
+terraform apply
+```
+
 ## building
 Make sure that go have the go compiler installed on at least version 1.16.
 
