@@ -288,6 +288,14 @@ policies:
 - path: "spec.template.spec.volumes.*.*.defaultMode"
   template: *setOctal
 
+  # initConatiners are always maps
+- path: "spec.template.spec.initContainers"
+  template: *setMap
+
+  # Pod volumes are maps
+- path: "spec.volumes"
+  template: *setMap
+
   # Deployable resources are set as a variable in the
   # format $name-resources. The default for this variable
   # will be the 
