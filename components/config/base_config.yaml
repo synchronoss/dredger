@@ -311,7 +311,13 @@ policies:
     {{- $name := $.Doc.metadata.name | stripTfVars }}
     variable "{{ $name }}-resources" {
       type = object({ requests = map(string), limits = map(string) })
+      {{ if eq 0 (len (keys $.Value)) }}
+      # using dredger default
+      default = { requests = {}, limits = {} }
+      {{ else }}
+      # using in-built default
       {{ toTfMap $.Value "default" | nindent 2 }}
+      {{ end }}
     }
 
 
