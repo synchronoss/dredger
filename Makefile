@@ -1,6 +1,6 @@
 prefix=/usr/local
 
-dredger: main.go components/*/*.go
+dredger: main.go components/*/*.go components/config/base_config.yaml
 	go build -o $@ $<
 
 install: dredger
