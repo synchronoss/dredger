@@ -217,9 +217,13 @@ policies:
   # singularize deployable containers volumeMounts
 - path: "spec.**.containers.*.volumeMounts"
   template: *singularizeArray
+- path: "spec.**.initContainers.*.volumeMounts"
+  template: *singularizeArray
 
   # singularize deployable container ports
 - path: "spec.**.containers.*.ports"
+  template: *singularizeArray
+- path: "spec.**.initContainers.*.ports"
   template: *singularizeArray
 
   # singularize service ports
@@ -228,6 +232,8 @@ policies:
 
   # unwind deployable container env entries
 - path: "spec.**.containers.*.env"
+  template: *unwindArray
+- path: "spec.**.initContainers.*.env"
   template: *unwindArray
 
   # unwind deployable volumes items
@@ -238,10 +244,21 @@ policies:
 - path: "spec.volumeClaimTemplates"
   template: *singularizeArray
 
-  # singularize deployable volumes
-- path: "spec.template.spec.volumes"
+  # singularize initContainers
+- path: "spec.**.initContainers"
   template: *singularizeArray
 
+  # singularize deployable volumes but not for securitypolicies
+- path: "spec.**.volumes"
+  template: |
+    {{ if eq "PodSecurityPolicy" $.Doc.kind }}
+    {{ $.Sub }}
+    {{ else }}
+    {{ $singleKey := regexReplaceAll "s$" $.Key "" }}
+    {{ range $i, $v := $.SubValue }}
+    {{ $singleKey }}{{ $v }}
+    {{ end }}
+    {{ end }}
 
 
   # singularize deployable volumeClaimTemplates
@@ -287,14 +304,6 @@ policies:
   # which terraform understands as a 0 prefixed string
 - path: "spec.template.spec.volumes.*.*.defaultMode"
   template: *setOctal
-
-  # initConatiners are always maps
-- path: "spec.template.spec.initContainers"
-  template: *setMap
-
-  # Pod volumes are maps
-- path: "spec.volumes"
-  template: *setMap
 
   # Deployable resources are set as a variable in the
   # format $name-resources. The default for this variable
