@@ -7,7 +7,7 @@ Dredger is made of dark magic and cannot fully convert a helm chart. It is desig
 ## quick start
 ```
 # Run dredger against the bitnami helm chart and write module to /tmp/dredger-redis
-dredger --outputdir /tmp/dredger-redis helm bitnami/redis-cluster --set networkPolicy.enabled=true
+dredger --outputdir /tmp/dredger-redis helm --repo https://charts.bitnami.com/bitnami redis-cluster --set networkPolicy.enabled=true
 
 # Now create the terraform to consume this module
 
