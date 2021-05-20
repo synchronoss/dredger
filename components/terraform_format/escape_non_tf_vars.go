@@ -31,7 +31,7 @@ func escapePrefix(v string) string {
 	if s.HasPrefix(v, "${var.") {
 		return v
 	} else {
-		return "$" + v
+		return "$$" + EscapeNonTfVars(s.TrimPrefix(v, "$"))
 	}
 }
 
