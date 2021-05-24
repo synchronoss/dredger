@@ -329,6 +329,10 @@ policies:
       {{ end }}
     }
 
+  # Resources in init containers are ignored as they are often added
+  # accidentaly
+- path: "spec.template.spec.initContainers.*.resources"
+  template: *ignoreKey
 
   # With Secret.data we defined a single variable then add each
   # key as an object property within that variable
