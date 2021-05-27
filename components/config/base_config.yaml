@@ -230,6 +230,10 @@ policies:
 - path: "spec.ports"
   template: *singularizeArray
 
+  # singularize probe http_get http_headers
+- path: "spec.template.spec.containers.*.*.httpGet.httpHeaders"
+  template: *singularizeArray
+
   # unwind deployable container env entries
 - path: "spec.**.containers.*.env"
   template: *unwindArray
