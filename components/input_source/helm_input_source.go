@@ -16,10 +16,11 @@
 package input_source
 
 import (
-	"errors"
 	"github.com/synchronoss/dredger/components/debug"
 	"github.com/synchronoss/dredger/components/encoding"
 	"os/exec"
+	"bytes"
+	"errors"
 )
 
 type helmInputSource struct {
@@ -49,11 +50,15 @@ func (hi helmInputSource) ReadDocuments() ([]interface{}, error) {
 		Args: cmdArgs,
 	}
 
-	out, err := cmd.CombinedOutput()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
-	if err != nil {
-		return docs, errors.New(string(out))
+	runErr := cmd.Run()
+
+	if runErr != nil {
+		return docs, errors.New(string(stderr.Bytes()))
 	}
 
-	return encoding.DecodeDocumentList(string(out))
+	return encoding.DecodeDocumentList(string(stdout.Bytes()))
 }
