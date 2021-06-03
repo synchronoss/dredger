@@ -345,7 +345,7 @@ policies:
       type = object({ requests = map(string), limits = map(string) })
       {{ if eq 0 (len (keys $.Value)) }}
       # using dredger default
-      default = { requests = {}, limits = {} }
+      default = { requests = null, limits = null }
       {{ else }}
       # using in-built default
       {{ toTfMap $.Value "default" | nindent 2 }}
