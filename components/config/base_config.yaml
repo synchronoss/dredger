@@ -259,6 +259,10 @@ policies:
 - path: "spec.**.volumes.*.*.items"
   template: *unwindArray
 
+  # unwind tolerations
+- path: "spec.**.tolerations"
+  template: *unwindArray
+
   # singularize deployable volumeClaimTemplates
 - path: "spec.volumeClaimTemplates"
   template: *singularizeArray
