@@ -263,6 +263,10 @@ policies:
 - path: "spec.**.tolerations"
   template: *unwindArray
 
+  # unwind volume projected sources
+- path: "spec.**.volumes.*.projected.sources"
+  template: *unwindArray
+
   # singularize deployable volumeClaimTemplates
 - path: "spec.volumeClaimTemplates"
   template: *singularizeArray
@@ -343,12 +347,12 @@ policies:
     {{- $name := $.Doc.metadata.name | stripTfVars }}
     variable "{{ $name }}-resources" {
       type = object({ requests = map(string), limits = map(string) })
-      {{ if eq 0 (len (keys $.Value)) }}
-      # using dredger default
-      default = { requests = null, limits = null }
-      {{ else }}
+      {{ if eq 2 (len (keys $.Value)) }}
       # using in-built default
       {{ toTfMap $.Value "default" | nindent 2 }}
+      {{ else }}
+      # using dredger default
+      default = { requests = null, limits = null }
       {{ end }}
     }
 
