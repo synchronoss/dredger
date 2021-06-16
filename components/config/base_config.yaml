@@ -234,6 +234,11 @@ policies:
 - path: "spec.template.spec.containers.*.*.httpGet.httpHeaders"
   template: *singularizeArray
 
+  # singularize mutating webhooks containers
+- path: "webhooks"
+  template: *singularizeArray
+
+
   # unwind deployable container env entries
 - path: "spec.**.containers.*.env"
   template: *unwindArray
