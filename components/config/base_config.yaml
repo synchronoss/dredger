@@ -148,21 +148,6 @@ policies:
       {{- end }}
     }
 
-  # Some charts have an annoying habit of not including the
-  # namespace in the metadata
-- path: "metadata"
-  template: |
-    {{- if $.SubValue.namespace }}
-    {{ $.Sub }}
-    {{- else }}
-    metadata {
-      namespace = var.namespace
-      {{- range $k, $v := $.SubValue }}
-      {{- $v | nindent 2 }}
-      {{- end }}
-    }
-    {{- end }}
-
   # labelsAreMap
   #
   # labels are always maps
