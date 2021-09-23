@@ -61,6 +61,7 @@ func CreateFunctionMap() *policy_set.FuncMap {
 
 	funcMap["stripTfVars"] = terraform_format.StripVars
 	funcMap["formatTfString"] = terraform_format.FormatStringValue
+	funcMap["formatResourceName"] = terraform_format.FormatResourceName
 
 	return &funcMap
 }

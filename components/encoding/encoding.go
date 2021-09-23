@@ -35,7 +35,7 @@ func DecodeDocumentList(input string) ([]interface{}, error) {
 	for _, documentString := range documentStrings {
 
 		// Skip if the document is empty
-		if documentString == "" {
+		if s.Trim(documentString, " \n\t") == "" {
 			debug.Debug("skipping empty document")
 			continue
 		}
@@ -45,6 +45,10 @@ func DecodeDocumentList(input string) ([]interface{}, error) {
 		yamlErr := yaml.Unmarshal([]byte(documentString), &documentStruct)
 		if yamlErr != nil {
 			return ret, yamlErr
+		}
+
+		if len(documentStruct) == 0 {
+			continue
 		}
 
 		ret = append(ret, documentStruct)

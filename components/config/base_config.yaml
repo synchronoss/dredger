@@ -136,7 +136,7 @@ policies:
   # NOTE: For some stupid reason DaemonSets are named wrong
 - path: ""
   template: |
-    {{- $name := stripTfVars $.Doc.metadata.name }}
+    {{- $name := formatResourceName $.Doc.metadata.name }}
     {{- $kind := snakecase $.Doc.kind }}
 
     {{- if eq $.Doc.kind "ServiceMonitor" }}
@@ -199,6 +199,10 @@ policies:
 - path: "spec.resources.requests"
   template: *setMap
 
+  # nodeSelector is a map
+- path: "spec.template.spec.nodeSelector"
+  template: *setMap
+
   # Service selectors are maps, but not deployable selectors
 - path: "spec.selector"
   template: |
@@ -226,6 +230,9 @@ policies:
 
   # unwind deployable container env_from
 - path: "spec.template.spec.containers.*.envFrom"
+  template: *unwindArray
+
+- path: "spec.template.spec.initContainers.*.envFrom"
   template: *unwindArray
 
   # unwind whatever this is

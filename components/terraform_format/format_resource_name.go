@@ -13,24 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package terraform_format
 
 import (
 	s "strings"
 )
 
-//
-// Quote
-//
-// Wraps a string in double quotes while escaping any
-// existing ones
-//
-
-func Quote(str string) string {
-	var escapedStr = str
-	//@TODO Check this
-	escapedStr = s.Replace(escapedStr, `\`, `\\`, -1)
-	escapedStr = s.Replace(escapedStr, `\"`, `\\"`, -1)
-	escapedStr = s.Replace(escapedStr, `"`, `\"`, -1)
-	return `"` + escapedStr + `"`
+func FormatResourceName(str string) string {
+	str = StripVars(str)
+	str = s.Replace(str, ".", "_", -1)
+	return str
 }
