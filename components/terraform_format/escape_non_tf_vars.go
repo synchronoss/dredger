@@ -28,7 +28,7 @@ import (
 var matchNonTfVar = regexp.MustCompile("(\\${[^}]+})")
 
 func escapePrefix(v string) string {
-	if s.HasPrefix(v, "${var.") {
+	if s.HasPrefix(v, "${var.") || s.HasPrefix(v, "${local.") {
 		return v
 	} else {
 		return "$$" + EscapeNonTfVars(s.TrimPrefix(v, "$"))

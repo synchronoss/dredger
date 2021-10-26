@@ -33,12 +33,16 @@ func isMultiLine(str string) bool {
 	return len(lines) > 1
 }
 
-var interpolationOnly = regexp.MustCompile(`^\${(var\.[^}]+)}$`)
+var interpolationOnlyVar = regexp.MustCompile(`^\${(var\.[^}]+)}$`)
+var interpolationOnlyLocal = regexp.MustCompile(`^\${(local\.[^}]+)}$`)
+
 
 func FormatStringValue(v string) string {
 	v = EscapeNonTfVars(v)
-	if interpolationOnly.MatchString(v) {
-		return interpolationOnly.ReplaceAllString(v, "$1")
+	if interpolationOnlyVar.MatchString(v) {
+		return interpolationOnlyVar.ReplaceAllString(v, "$1")
+	} else if interpolationOnlyLocal.MatchString(v) {
+		return interpolationOnlyLocal.ReplaceAllString(v, "$1")
 	} else if isMultiLine(v) {
 		return "<<-EOF\n" + Indent(v) + "\n  EOF" + "\n"
 	} else {
